@@ -3,6 +3,7 @@ const EventEmitter = require('events')
 const http = require('http')
 const fs = require('fs')
 const url = require('url')
+const path = require('path')
 
 // création d'une classe JS pour mettre en pratique un évènement
 // méthodes async à utiliser pour faire les actions
@@ -24,6 +25,9 @@ let App = {
             }
             else if(req.url == '/google'){
                 monEcouteur.emit('google',res, req)
+            }
+            else if(req.url == '/video'){
+                monEcouteur.emit('video',res, req)
             }
             else{
                 monEcouteur.emit('404', res, req)
@@ -73,4 +77,35 @@ app.on('404', (res,req)=>{
 app.on('google',(res,req)=>{
     res.writeHead(302, {location: "https://google.fr"})
     res.end()
+})
+app.on('video', (res, req)=>{
+    let filepath = path.resolve("demo.mp4")
+    let stat = fs.statSync(filepath)
+    let fileSize = stat.size
+    let range = req.headers.range
+
+    if(range){
+        let parts = range.replace(/bytes=/,"").split("-")
+        let start = parseInt(parts[0],10)
+        let end = parts[1]?parseInt(part[1],10):fileSize-1
+        let chunksize = (end - start) +1
+        let file = fs.createReadStream(filepath, {start, end})
+        let head = {
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunksize,
+            'Content-Type': 'video/mp4',
+        }
+        res.writeHead(206, head)
+        file.pipe(res)
+    }else{
+        let head = {
+            'Content-Length': fileSize,
+            'Content-Type': 'video/mp4',
+        }
+        res.writeHead(200, head)
+        fs.createReadStream(filepath).pipe(res)
+        res.end()
+    }
+
 })
