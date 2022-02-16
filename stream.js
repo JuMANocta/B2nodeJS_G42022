@@ -1,13 +1,18 @@
-// Utilisation des Streams avec fs
-let fs = require('fs')
-let file = 'demo.mp4'
+const stream = require('stream')
+const fs = require('fs')
 
-fs.stat(file, (err, stats) => {
-    let total = stats.size
-    let progress = 0
-    let read = fs.createReadStream(file)
-    read.on('data', (chunk)=>{
-        progress += chunk.length
-        console.log("J'ai lu " + Math.round(100 * progress/total) + "%")
-    })
+// ouverture d'un flux de lecture du fichier
+let demo = fs.createReadStream('demo.mp4')
+// ouverture d'un flux d'écriture de fichier
+let newdemo = fs.createWriteStream('demo3.mp4')
+
+// les données de 'demo' sont ainsi transférées vers le 'newdemo' via un tunnel
+
+const copy = new stream.Transform({
+    // 'transform' permet de gérer le flux à la fois en lecture et en écriture
+    transform(chunk, encoding, callback){
+        callback(null, chunk)
+    }
 })
+
+demo.pipe(copy).pipe(newdemo)
